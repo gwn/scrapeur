@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+const
+    fs = require('fs'),
+    https = require('https'),
+    path = require('path'),
+    {JSDOM} = require('jsdom')
+
+
+const main = confPath => {
+    const conf = canonicalizeConfig(require(path.resolve(confPath)))
+
+    scrape(1, conf, 'main', conf.url)
+        .then(data => console.log(JSON.stringify(data)))
+        .catch(err => console.error('ERROR!!', err))
+}
+
+const canonicalizeConfig = rawConf => ({
+    ...rawConf,
+
+    limit: {
+        fetch: 1000000,
+        level: 1000000,
+        ...rawConf.limit,
+    },
+
+    links: map(
+        linkSet => map(
+            link =>
+                link.constructor === Object
+                    ? link
+                    : {parser: link, propName: 'children'},
+            linkSet
+        ),
+
+        rawConf.links
+    ),
+})
+
+const scrape = (level, conf, parserName, url) => {
+    ++scrape.fetchCount
+
+    console.error('fetch', url, parserName, level, scrape.fetchCount)
+
+    return get(url)
+        .then(content =>
+            injectLinkedData(level, conf, parserName)(
+                conf.parsers[parserName](
+                    makeDocument(content, url)
+                )
+            )
+        )
+}
+scrape.fetchCount = 0
+
+const injectLinkedData = (level, conf, parserName) => node => {
+    if (!node) return node
+
+    if (node.constructor === Array)
+        return promiseAll(
+            node.map(injectLinkedData(level, conf, parserName))
+        )
+
+    if (node.constructor !== Object) return node
+
+    return promiseAll({
+        ...map(injectLinkedData(level, conf, parserName), node),
+
+        ...Object.entries(conf.links[parserName] || {})
+            .reduce(
+                (accum, [linkName, {parser: linkedParserName, propName}]) =>
+                    !node[linkName]
+                        ? accum
+                        : {
+                            ...accum,
+                            [propName]: (
+                                level >= conf.limit.level ||
+                                scrape.fetchCount >= conf.limit.fetch
+                            )
+                                    ? '---limit hit---'
+
+                                    : scrape(
+                                        level + 1,
+                                        conf,
+                                        linkedParserName,
+                                        node[linkName]
+                                    ),
+                        },
+
+                {}
+            )
+    })
+}
+
+const makeDocument = (content, url) => {
+    const window = new JSDOM(content, {url}).window
+
+    window.document._ = (...selectors) =>
+        [...window.document.querySelectorAll(...selectors)]
+
+    window.Node.prototype._ = function(...selectors) {
+        return [...this.querySelectorAll(...selectors)]
+    }
+
+    return window.document
+}
+
+const get = url => new Promise((resolve, reject) =>
+    https.get(url, response => {
+        const isSuccessful = Math.floor(response.statusCode / 100) === 2
+        let data = ''
+        response.on('data', chunk => data += chunk.toString())
+        response.on('end', () => (isSuccessful ? resolve : reject)(data))
+    })
+)
+
+const promiseAll = functor =>
+    functor.constructor === Object
+        ? Promise.all([
+            Object.keys(functor),
+            Promise.all(
+                Object.values(functor)
+            ),
+        ])
+            .then(([keys, vals]) =>
+                vals.reduce(
+                    (accum, val, idx) => ({...accum, [keys[idx]]: val}),
+                    {}
+                )
+            )
+
+        : Promise.all(functor)
+
+const map = (mapper, functor) =>
+    functor.constructor === Object
+        ? Object.entries(functor)
+            .reduce(
+                (accum, [key, val]) => ({
+                    ...accum,
+                    [key]: mapper(val, key, functor),
+                }),
+                {}
+            )
+        : functor.map(mapper)
+
+main(process.argv[2])

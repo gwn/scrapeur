@@ -1,0 +1,10 @@
+Improve docs
+Proper config checking and error handling. What about failed reqs?
+Don't follow invalid links
+Request retries
+    Consider https://www.npmjs.com/package/curlrequest
+Cheerio and shell adapters (e.g. xmllint) in addition to JSDOM
+File system web page caching option for development
+In-memory web page caching option during process for repeating links?
+Delay option to fight rate-limiting servers
+Depth first scraping, for development?

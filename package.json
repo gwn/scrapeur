@@ -1,0 +1,18 @@
+{
+  "name": "scrapeur",
+  "version": "0.1.0",
+  "description": "Simple high-level declarative scraper",
+  "bin": {
+    "scrapeur": "scrapeur"
+  },
+  "keywords": [
+    "scrape",
+    "scraper",
+    "JSDOM"
+  ],
+  "author": "gwn <dev@gwn.wtf>",
+  "license": "ISC",
+  "dependencies": {
+    "jsdom": "^14.0.0"
+  }
+}
