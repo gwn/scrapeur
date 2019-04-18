@@ -1,8 +1,10 @@
-Improve docs
-Proper config checking and error handling. What about failed reqs?
-Don't follow invalid links
-Request retries
+Extract a couple of fp utils and use them
+!Parsers should be able to return promises
+!Improve docs
+!Proper config checking and error handling. What about failed reqs?
+Request retries (should be an option)
     Consider https://www.npmjs.com/package/curlrequest
+Don't follow invalid links
 Cheerio and shell adapters (e.g. xmllint) in addition to JSDOM
 File system web page caching option for development
 In-memory web page caching option during process for repeating links?

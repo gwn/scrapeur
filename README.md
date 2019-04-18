@@ -147,4 +147,8 @@ added sooner or later.
 
 The good thing about JSDOM though is that it's the standard DOM
 API so if you already know how to work with it you don't have to
-learn nor remember new stuff.
+learn nor remember new stuff. Also, since it's a complete DOM
+implementation, you can execute scripts and do everything you can
+do in a real browser. This can be useful for example to show
+initially hidden content, or a some content computed according to
+user's actions.
